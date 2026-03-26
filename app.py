@@ -1,137 +1,81 @@
-import streamlit as st
-import importlib
-import styles
-from extensions import GSATExtensions as ext
+# database_history_adv.py
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 1. 頁面初始化設定 (Page Configuration)
-# ─────────────────────────────────────────────────────────────────────────────
+CONCEPTS = {
+    # ════════ LEVEL 3: 分科大考魔王 (時代轉型與全球議題) ════════
+    "his_modernity_global": {
+        "level": 3, "title": "現代性的擴張與全球化", "emoji": "🌐", "color": "#E74C3C",
+        "summary": "冷戰解體、去殖民化與全球一體化的挑戰",
+        "detail": "分科測驗重點：探討二戰後解殖運動（Decolonization）如何重塑世界版圖。分析冷戰對峙下的意識型態競爭，以及 1990 年代後全球化如何衝擊民族國家的主權，並引發在地文化的認同危機。",
+        "parents": ["his_cold_war_logic", "his_nationalism_adv"],
+        "formula": r"\text{Modernity} = \text{Rationality} + \text{Capitalism} + \text{Nation-State}"
+    },
+    "his_east_west_collision": {
+        "level": 3, "title": "東西方文明的衝突與交會", "emoji": "⛵", "color": "#D35400",
+        "summary": "從絲路到條約體系：貿易、宗教與戰爭",
+        "detail": "分科跨區域重點：比較傳統朝貢體系（Tributary System）與近代條約體系（Treaty System）的邏輯衝突。分析大航海時代後，全球貿易網如何將歐、亞、美洲連結，並探討西力東漸下東亞社會的制度轉型與陣痛。",
+        "parents": ["his_maritime_trade", "his_imperialism_logic"],
+        "formula": r"\text{Tributary System} \leftrightarrow \text{Sovereign Equality}"
+    },
+    "his_ideological_rev": {
+        "level": 3, "title": "近代思想革命與社會劇變", "emoji": "📜", "color": "#C0392B",
+        "summary": "啟蒙運動、馬克思主義與極權主義的興起",
+        "detail": "分科思想重點：分析科學革命如何引發啟蒙運動對王權的質疑。探討工業革命後的社會不均如何孕育社會主義，並進一步連結到 20 世紀極權主義（Totalitarianism）對民主憲政的挑戰。",
+        "parents": ["his_enlightenment", "his_industrial_logic"],
+        "formula": r"\text{Liberty} + \text{Equality} \to \text{Democracy / Revolution}"
+    },
 
-st.set_page_config(
-    page_title="分科測驗觀念溯源系統",
-    page_icon="🎓",
-    layout="centered", # 適合長時間閱讀與公式檢視
-    initial_sidebar_state="expanded"
-)
+    # ════════ LEVEL 2: 分科核心工具 (制度與框架) ════════
+    "his_cold_war_logic": {
+        "level": 2, "title": "冷戰兩極對抗架構", "emoji": "❄️", "color": "#9B59B6",
+        "summary": "圍堵政策、代理人戰爭與核威懾",
+        "detail": "理解美蘇對峙下的國際體制（如：北大西洋公約、華沙公約）。分析兩極體系如何影響第三世界國家的發展路徑。",
+        "parents": ["his_ww_impact"],
+        "formula": r"\text{USA (Liberalism)} \text{ vs } \text{USSR (Communism)}"
+    },
+    "his_nationalism_adv": {
+        "level": 2, "title": "民族主義的演變", "emoji": "🚩", "color": "#9B59B6",
+        "summary": "從想像的共同體到建國運動",
+        "detail": "探討民族主義如何從 19 世紀的建國動力（如德、義統一），轉變為 20 世紀引發兩次世界大戰的激進力量。理解「國族」作為政治動員單位的建構過程。",
+        "parents": ["his_nation_state_origin"],
+        "formula": r"\text{Shared Identity} + \text{Political Sovereignty} = \text{Nation}"
+    },
+    "his_tributary_system": {
+        "level": 2, "title": "傳統東亞朝貢秩序", "emoji": "🏯", "color": "#F39C12",
+        "summary": "華夷之辨與冊封體制",
+        "detail": "理解以中國為中心的宗藩關係。分析這種非平等、階層式的外交邏輯如何維繫了東亞數百年的區域穩定。",
+        "parents": ["his_confucian_order"],
+        "formula": r"\text{Center (Suzerain)} \leftrightarrow \text{Periphery (Vassal)}"
+    },
 
-# 定義分科考科與資料庫檔案的對照 (檔案需並列於同目錄下)
-SUBJECT_MAP = {
-    "📐 數學甲/乙 (分科)": "database_math_adv",
-    "⚛️ 物理 (分科)": "database_physics_adv",
-    "🧪 化學 (分科)": "database_chem_adv",
-    "🧬 生物 (分科)": "database_bio_adv",
-    "📜 歷史 (分科)": "database_history_adv",
-    "🌍 地理 (分科)": "database_geo_adv",
-    "⚖️ 公民 (分科)": "database_civics_adv"
+    # ════════ LEVEL 1: 學測基礎銜接 (重大轉折) ════════
+    "his_enlightenment": {
+        "level": 1, "title": "啟蒙運動與理性主義", "emoji": "💡", "color": "#BDC3C7",
+        "summary": "天賦人權、社會契約與分權制衡",
+        "detail": "洛克、孟德斯鳩、盧梭等人的思想，奠定了現代民主政治的憲法基礎。它是所有近代革命的火種。",
+        "parents": ["his_scientific_rev"],
+        "formula": r"\text{Reason} > \text{Tradition}"
+    },
+    "his_industrial_logic": {
+        "level": 1, "title": "工業革命的動力", "emoji": "⚙️", "color": "#BDC3C7",
+        "summary": "技術創新與資本累積",
+        "detail": "從蒸汽機到自動化生產，工業革命不僅改變了生產方式，更重組了人類的城鄉比例與社會階級結構。",
+        "parents": ["his_capitalism_origin"],
+        "formula": r"\text{Machinery} + \text{Efficiency} = \text{Mass Production}"
+    },
+
+    # ════════ LEVEL 0: 終極基石 (歷史學公理) ════════
+    "his_causality": {
+        "level": 0, "title": "歷史因果邏輯", "emoji": "⏳", "color": "#7F8C8D",
+        "summary": "變遷、延續與斷裂",
+        "detail": "歷史學的第一核心：沒有一件事情是孤立發生的。所有的變遷都有其長程、中程與短程原因（Annales School 史學觀）。",
+        "parents": [],
+        "formula": r"\text{Context} \times \text{Event} = \text{Change}"
+    },
+    "his_evidence": {
+        "level": 0, "title": "史料與歷史解釋", "emoji": "🔍", "color": "#7F8C8D",
+        "summary": "證據、立場與多重敘事",
+        "detail": "歷史學的公理：歷史不是過去發生的「事」，而是透過史料建構出來的「解釋」。需區分一手與二手史料，並察覺作者的立場偏見。",
+        "parents": [],
+        "formula": r"\text{Sources} + \text{Interpretation} = \text{History}"
+    }
 }
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 2. 側邊欄邏輯 (Subject Selector & Navigation)
-# ─────────────────────────────────────────────────────────────────────────────
-
-with st.sidebar:
-    st.markdown("<div class='sidebar-label'>Advanced Subjects Test</div>", unsafe_allow_html=True)
-    st.title("分科全科導航")
-    
-    # 學科切換選擇器
-    subject_label = st.selectbox("請選擇分科複習科目", list(SUBJECT_MAP.keys()))
-    module_name = SUBJECT_MAP[subject_label]
-    
-    # 動態掛載對應的學科資料庫
-    try:
-        db_module = importlib.import_module(module_name)
-        CONCEPTS = db_module.CONCEPTS
-    except ImportError:
-        st.error(f"❌ 找不到資料庫檔案: {module_name}.py")
-        st.stop()
-
-    # 初始化與重置邏輯：如果換科目，則清空目前的追蹤路徑
-    if "active_subject" not in st.session_state or st.session_state.active_subject != subject_label:
-        st.session_state.current = None
-        st.session_state.history = []
-        st.session_state.active_subject = subject_label
-
-    # 套用主視覺樣式 (可選擇 Light/Dark)
-    theme_choice = st.radio("視覺模式", ["清新學術 (Light)", "極致專注 (Dark)"], horizontal=True)
-    styles.apply_styles(theme=theme_choice)
-
-    st.divider()
-
-    # 考點快速搜尋 (僅限當前科目)
-    st.markdown("<div class='sidebar-label'>快速檢索考點</div>", unsafe_allow_html=True)
-    search_query = st.text_input("", placeholder="輸入考點、定律、公式...")
-    if search_query:
-        search_results = [k for k, v in CONCEPTS.items() if search_query.lower() in v['title'].lower() or search_query.lower() in v['summary'].lower()]
-        if search_results:
-            for res_key in search_results:
-                if st.button(f"🔍 {CONCEPTS[res_key]['title']}", key=f"search_{res_key}", use_container_width=True):
-                    if st.session_state.current:
-                        st.session_state.history.append(st.session_state.current)
-                    st.session_state.current = res_key
-                    st.rerun()
-
-    st.divider()
-    
-    # 重置按鈕
-    if st.button("🏠 回到首頁 / 重置路徑", use_container_width=True):
-        st.session_state.current = None
-        st.session_state.history = []
-        st.rerun()
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 3. 主畫面渲染邏輯
-# ─────────────────────────────────────────────────────────────────────────────
-
-# --- A. 首頁視圖 (未選取考點時) ---
-if st.session_state.current is None:
-    styles.render_header(f"{subject_label}", "深度複習：從分科魔王考點追溯至學科基石")
-    
-    st.markdown("### 🎯 選擇你要分析的挑戰單元")
-    st.info("分科測驗常出現跨章節考題，建議從 Level 3 的複合觀念開始拆解。")
-    
-    # 抓取 Level 3 (分科大考魔王) 作為入口
-    entry_keys = [k for k, v in CONCEPTS.items() if v['level'] == 3]
-    
-    for key in entry_keys:
-        concept = CONCEPTS[key]
-        card_html = f"""
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <div>
-                <h4 style="margin:0; color:#2563EB;">{concept['emoji']} {concept['title']}</h4>
-                <p style="margin:0; font-size:0.9rem; opacity:0.8;">{concept['summary']}</p>
-            </div>
-            <div style="font-weight:bold; color:#2563EB;">LV 3</div>
-        </div>
-        """
-        st.markdown(styles.card_wrapper(card_html), unsafe_allow_html=True)
-        if st.button(f"深入探究 {concept['title']}", key=f"entry_{key}", use_container_width=True):
-            st.session_state.current = key
-            st.rerun()
-
-# --- B. 詳情視圖 (進入觀念溯源時) ---
-else:
-    curr_key = st.session_state.current
-    concept = CONCEPTS[curr_key]
-    
-    # 1. 麵包屑導航 (由 Extensions 提供)
-    ext.learning_breadcrumb(st.session_state.history, curr_key, CONCEPTS)
-    
-    # 2. 標題與層級進度
-    st.markdown(f"<h1 style='margin-bottom:0;'>{concept['emoji']} {concept['title']}</h1>", unsafe_allow_html=True)
-    level_names = ["地基公理", "基礎銜接", "核心工具", "分科大考魔王"]
-    st.caption(f"觀念層級：{level_names[concept['level']]} (Level {concept['level']})")
-    st.progress((concept['level'] + 1) * 25)
-
-    # 3. 內容佈局：左側文字與公式，右側視覺化圖表
-    col_content, col_viz = st.columns([1.6, 1])
-
-    with col_content:
-        st.markdown(f"**【核心解析】**\n\n{concept['detail']}")
-        
-        if concept.get('formula'):
-            st.markdown(f'<div class="formula-container">', unsafe_allow_html=True)
-            st.latex(concept['formula'])
-            st.markdown('</div>', unsafe_allow_html=True)
-        
-        # 顯示分科解題撇步
-        ext.exam_
